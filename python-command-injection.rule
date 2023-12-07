@@ -1,0 +1,46 @@
+rules:
+- id: python-command-injection
+  patterns:
+    - pattern-either:
+        - pattern: subprocess.$FUNC(..., $ARGS, ...)
+          where-python: |
+            is_dangerous_subprocess_function('$FUNC') and not is_safe_argument_list('$ARGS')
+        - pattern: os.$OS_FUNC($ARGS, ...)
+          where-python: |
+            is_dangerous_os_function('$OS_FUNC') and not is_safe_argument('$ARGS')
+        - pattern: popen2.$POPEN_FUNC(..., $ARGS, ...)
+          where-python: |
+            is_dangerous_popen2_function('$POPEN_FUNC') and not is_safe_argument_list('$ARGS')
+        - pattern: commands.getoutput($CMD)
+          where-python: |
+            not is_safe_argument('$CMD')
+        - pattern: django.core.management.call_command(..., $ARGS, ...)
+          where-python: |
+            not is_safe_argument_list('$ARGS')
+  message: "Potential command injection detected. Review the use of subprocess or os command execution functions."
+  languages: [python]
+  severity: ERROR
+
+# Helper functions for where-python clauses
+# Note: These are pseudocode representations of the logic and need actual implementation in Python.
+def is_dangerous_subprocess_function(func_name):
+    dangerous_functions = ["call", "Popen", "check_output", "check_call", "run"]
+    return func_name in dangerous_functions
+
+def is_dangerous_os_function(func_name):
+    dangerous_functions = ["system", "popen", "spawn*", "exec*", "startfile"]
+    return func_name in dangerous_functions and not func_name.startswith("spawnl")
+
+def is_dangerous_popen2_function(func_name):
+    dangerous_functions = ["popen2", "popen3", "popen4"]
+    return func_name in dangerous_functions
+
+def is_safe_argument(arg):
+    # Implement logic to check if arg is a literal or part of an array
+    # Return True if the argument is considered safe
+    pass
+
+def is_safe_argument_list(args):
+    # Implement logic to iterate over args and check each one using is_safe_argument
+    # Return True if all arguments are considered safe
+    pass
